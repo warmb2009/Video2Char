@@ -1,7 +1,7 @@
 # coding=utf-8
 import os
 import json
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 
 # 写入的 HTML 的配置
 STYLE = '<style>pre{font-size: 10px;line-height: 7px;}</style>\r\n'
@@ -37,7 +37,27 @@ def charset256(charset):
         s += i * r
     return s
 
+def char2image(txt, to_image_path, width, height):
+    im_txt = Image.new("RGB", (width, height), (255, 255, 255))
+    dr = ImageDraw.Draw(im_txt)
+    font = ImageFont.load_default()
 
+    x = y = 0
+    font_w, font_h = font.getsize(txt[1])
+    # font_h *= 1.37
+    for i in range(len(txt)):
+        if(txt[i] == '\n'):
+            x += font_h
+            y = -font_w
+
+        dr.text((y, x), txt[i], 'black', font = font)
+        y += font_w
+
+    print(to_image_path + ' save')
+
+    if not os.path.exists(to_image_path):
+        im_txt.save(to_image_path)
+    
 def image2char(image, width, height, charset):
     # 将图片转换为字符画
     image = image.convert('L').resize((width, height))  # 将图片转换为灰度模式
@@ -45,15 +65,19 @@ def image2char(image, width, height, charset):
 
     char_set = []
 
+    txt = ''
     for i in range(height):
         for j in range(width):
             # 读取每一个像素的值，找出对应的字符
             char = charset[pix[j, i]]
-            char_set.append(char)
-        char_set.append('\r\n')
+            # char_set.append(char)
+            txt += char
+        # char_set.append('\r\n')
+        txt += '\n'
+    # print(txt)
+        #char2image(txt, )
     # 返回合并后的字符画
-    return ''.join(char_set)
-
+    return txt
 
 def gif2char(gif, width, height, charset):
     gif = Image.open(gif)
@@ -65,7 +89,13 @@ def gif2char(gif, width, height, charset):
     try:
         # 逐帧将 GIF 转换
         while True:
-            char_set.append(CHAR_TEMP % image2char(gif, width, height, charset))
+            txt = image2char(gif, width, height, charset)
+            # char_set.append(CHAR_TEMP % image2char(gif, width, height, charset))
+            #char_set.append(CHAR_TEMP % final)
+            # print(final)
+            to_image_path = 'cache/' + str(count) + '.png'
+            char2image(txt, to_image_path, width, height)
+            
             if count % 10 == 0:
                 print('生成 %d S 字符画' % (count / 10))
             count += 1
@@ -79,7 +109,6 @@ def video2gif(video, width, height):
     # 调用 FFmpeg ，将视频转换为指定大小的 GIF
     os.system('ffmpeg -i %s -s %d*%d -r 10 %s.gif' %
               (video, width, height, video))
-
 
 if __name__ == '__main__':
     # 从 config.json 中读取 json 格式的配置
