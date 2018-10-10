@@ -36,3 +36,5 @@
 ## Todo
 
 - <del>有颜色的选项</del>(电脑崩了，不更新了)
+export CACA_GEOMETRY=200x78
+mplayer -vo caca $INPUT
